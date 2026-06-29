@@ -450,7 +450,6 @@
   <button class="tab-btn active" onclick="switchTab('entry')">📦 Stock Entry</button>
   <button class="tab-btn" onclick="switchTab('closing')">📊 Closing Stock</button>
   <button class="tab-btn" onclick="switchTab('log')">📋 Today's Log</button>
-  <button class="tab-btn" onclick="switchTab('setup')">⚙️ Setup Guide</button>
 </div>
 
 <div class="main">
@@ -554,11 +553,8 @@
     </div>
   </div>
 
-  <!-- ===== SETUP GUIDE TAB ===== -->
-  <div class="tab-content" id="tab-setup">
-    <div class="section-title">One-time Setup (5 minutes)</div>
-    <div class="card">
-      <ol class="guide-steps">
+  <!-- SETUP TAB REMOVED - URL hardcoded -->
+  <div class="tab-content" id="tab-setup" style="display:none!important"><ol>
         <li>
           <div class="step-body">
             <strong>Open your Google Sheet</strong> → go to <strong>Extensions → Apps Script</strong>. Delete any existing code in <code>Code.gs</code>.
@@ -769,7 +765,7 @@ const SKU_DATA = [
 let selectedSKU = null;
 let selectedSKUName = null;
 let movementType = "In";
-let configURL = localStorage.getItem("rentastic_gsheet_url") || "";
+const GSHEET_URL = "https://script.google.com/macros/s/AKfycbyW0CuUUmJ_pRiPwsQe_VOPmo-jfp1tHklmZlhoe4IZDxxc6piLjb5qZkFYARSZTVo/exec";
 let closingData = [];
 let closingDataRaw = [];
 
@@ -781,7 +777,6 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("header-date").textContent =
     today.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   document.getElementById("entry-date").value = today.toISOString().slice(0, 10);
-  if (configURL) document.getElementById("gsheet-url").value = configURL;
   renderDropdown("");
 });
 
@@ -869,8 +864,8 @@ async function submitEntry() {
   const date = document.getElementById("entry-date").value;
   const remarks = document.getElementById("remarks").value.trim();
 
-  const baseURL = localStorage.getItem("rentastic_gsheet_url");
-  if (!baseURL) return showStatus("⚠ Web App URL not set. Go to Setup Guide tab first.", "error");
+  const baseURL = GSHEET_URL;
+  if (!baseURL) return showStatus("⚠ Web App URL not configured.", "error");
 
   const btn = document.getElementById("submit-btn");
   btn.disabled = true;
@@ -959,12 +954,7 @@ function updateQuickStats(type, qty) {
 // CLOSING STOCK (from GSheet)
 // ============================================================
 async function loadClosingStock() {
-  const url = localStorage.getItem("rentastic_gsheet_url");
-  if (!url) {
-    document.getElementById("closing-table-wrap").innerHTML =
-      '<div class="empty-state"><div class="empty-icon">⚙️</div>Set your Web App URL in the Setup Guide tab first.</div>';
-    return;
-  }
+  const url = GSHEET_URL;
   document.getElementById("closing-table-wrap").innerHTML =
     '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
   try {
@@ -1033,12 +1023,7 @@ function filterTable(q) {
 // ============================================================
 async function loadTodayLog() {
   if (localLog.length > 0) { renderLocalLog(); return; }
-  const url = localStorage.getItem("rentastic_gsheet_url");
-  if (!url) {
-    document.getElementById("log-container").innerHTML =
-      '<div class="empty-state"><div class="empty-icon">⚙️</div>Set your Web App URL in Setup Guide first.</div>';
-    return;
-  }
+  const url = GSHEET_URL;
   document.getElementById("log-container").innerHTML =
     '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
   try {
@@ -1075,28 +1060,6 @@ async function loadTodayLog() {
   }
 }
 
-// ============================================================
-// SAVE CONFIG
-// ============================================================
-function saveConfig() {
-  const url = document.getElementById("gsheet-url").value.trim();
-  if (!url) return;
-  localStorage.setItem("rentastic_gsheet_url", url);
-  configURL = url;
-  document.getElementById("config-status").style.display = "block";
-}
-
-// ============================================================
-// COPY APPS SCRIPT
-// ============================================================
-function copyScript() {
-  const code = document.getElementById("apps-script-code").textContent;
-  navigator.clipboard.writeText(code).then(() => {
-    const btn = event.target;
-    btn.textContent = "Copied!";
-    setTimeout(() => btn.textContent = "Copy Script", 2000);
-  });
-}
 </script>
 </body>
 </html>
