@@ -1,4 +1,574 @@
-// ======================================================
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rentastic — Stock Manager</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c26;
+    --surface2: #1f2436;
+    --border: #2a3047;
+    --accent: #f5a623;
+    --accent2: #e8652a;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --text: #e8ecf4;
+    --text-muted: #7a86a3;
+    --font: 'Inter', system-ui, sans-serif;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* HEADER */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  header .logo {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--accent);
+  }
+  header .logo span { color: var(--text); }
+  header .tagline { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+  header .date-badge {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* TABS */
+  .tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0 28px;
+  }
+  .tab-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 500;
+    padding: 13px 22px;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    font-family: var(--font);
+  }
+  .tab-btn:hover { color: var(--text); }
+  .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  /* MAIN LAYOUT */
+  .main { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+  /* SECTION TITLES */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 14px;
+  }
+
+  /* FORM CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  /* FORM GRID */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+  }
+  @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+  .form-group { display: flex; flex-direction: column; gap: 7px; }
+  .form-group.full { grid-column: 1 / -1; }
+
+  label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  input[type="text"], input[type="date"], input[type="number"], select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13.5px;
+    padding: 10px 13px;
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent); }
+  select option { background: #1f2436; }
+
+  /* SKU SEARCH */
+  .sku-wrapper { position: relative; }
+  #sku-search {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13.5px;
+    padding: 10px 13px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  #sku-search:focus { border-color: var(--accent); }
+  .sku-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0; right: 0;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 7px 7px;
+    max-height: 240px;
+    overflow-y: auto;
+    z-index: 100;
+    display: none;
+  }
+  .sku-dropdown.open { display: block; }
+  .sku-option {
+    padding: 9px 13px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .sku-option:hover { background: #2a3047; }
+  .sku-option .sku-code { color: var(--accent); font-size: 11px; font-weight: 600; font-family: monospace; }
+  .sku-option .sku-name { color: var(--text); font-size: 12.5px; }
+  .sku-selected {
+    margin-top: 7px;
+    background: rgba(245, 166, 35, 0.08);
+    border: 1px solid rgba(245, 166, 35, 0.3);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .sku-selected.visible { display: flex; }
+  .sku-selected .clear-sku {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0;
+  }
+
+  /* TOGGLE IN/OUT */
+  .toggle-group {
+    display: flex;
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .toggle-btn {
+    flex: 1;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: var(--font);
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+    background: var(--surface2);
+    color: var(--text-muted);
+  }
+  .toggle-btn.active-in { background: rgba(46,204,113,0.15); color: var(--green); }
+  .toggle-btn.active-out { background: rgba(231,76,60,0.15); color: var(--red); }
+
+  /* SUBMIT BUTTON */
+  .btn-submit {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    font-family: var(--font);
+    font-size: 14px;
+    font-weight: 700;
+    padding: 13px 30px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    width: 100%;
+    transition: opacity 0.15s, transform 0.1s;
+    margin-top: 6px;
+  }
+  .btn-submit:hover { opacity: 0.92; transform: translateY(-1px); }
+  .btn-submit:active { transform: translateY(0); }
+  .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+  /* STATUS BAR */
+  .status-bar {
+    border-radius: 7px;
+    padding: 11px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    display: none;
+    margin-top: 12px;
+    align-items: center;
+    gap: 8px;
+  }
+  .status-bar.success { display: flex; background: rgba(46,204,113,0.12); border: 1px solid rgba(46,204,113,0.3); color: var(--green); }
+  .status-bar.error { display: flex; background: rgba(231,76,60,0.12); border: 1px solid rgba(231,76,60,0.3); color: var(--red); }
+  .status-bar.loading { display: flex; background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.3); color: var(--accent); }
+
+  /* CLOSING STOCK TABLE */
+  .table-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .search-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 13px;
+    padding: 8px 12px;
+    outline: none;
+    flex: 1;
+    min-width: 180px;
+  }
+  .search-input:focus { border-color: var(--accent); }
+  .btn-refresh {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text-muted);
+    font-family: var(--font);
+    font-size: 12px;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead th {
+    background: var(--surface2);
+    color: var(--text-muted);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+    padding: 10px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  tbody tr { border-bottom: 1px solid rgba(42,48,71,0.6); transition: background 0.1s; }
+  tbody tr:hover { background: rgba(255,255,255,0.025); }
+  tbody td { padding: 10px 14px; }
+  .td-code { font-family: monospace; font-size: 11px; color: var(--accent); }
+  .td-name { color: var(--text); }
+  .td-qty {
+    font-weight: 700;
+    font-size: 15px;
+    text-align: right;
+  }
+  .td-qty.positive { color: var(--green); }
+  .td-qty.zero { color: var(--text-muted); }
+  .td-qty.negative { color: var(--red); }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 50px 20px;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .empty-icon { font-size: 36px; margin-bottom: 12px; }
+
+  /* SETUP GUIDE */
+  .guide-steps { list-style: none; counter-reset: step; }
+  .guide-steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+  }
+  .guide-steps li:last-child { border-bottom: none; }
+  .guide-steps li::before {
+    content: counter(step);
+    flex-shrink: 0;
+    width: 26px; height: 26px;
+    background: rgba(245,166,35,0.12);
+    border: 1px solid rgba(245,166,35,0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--accent);
+    line-height: 1;
+  }
+  .guide-steps li .step-body { font-size: 13px; line-height: 1.6; color: var(--text); }
+  .guide-steps li .step-body strong { color: var(--accent); }
+  code {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 11px;
+    font-family: monospace;
+    color: #a0cfff;
+  }
+  .code-block {
+    background: #0a0d14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: #a0cfff;
+    white-space: pre;
+    overflow-x: auto;
+    margin-top: 10px;
+  }
+  .copy-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-muted);
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+    float: right;
+    margin-bottom: 6px;
+    font-family: var(--font);
+    transition: color 0.15s;
+  }
+  .copy-btn:hover { color: var(--accent); }
+
+  /* TABS CONTENT */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+  }
+  .badge-in { background: rgba(46,204,113,0.12); color: var(--green); }
+  .badge-out { background: rgba(231,76,60,0.12); color: var(--red); }
+
+  /* RECENT LOG */
+  .log-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(42,48,71,0.5);
+    font-size: 12.5px;
+  }
+  .log-item:last-child { border-bottom: none; }
+  .log-item .log-sku { font-family: monospace; font-size: 11px; color: var(--accent); width: 80px; flex-shrink: 0; }
+  .log-item .log-name { flex: 1; color: var(--text); }
+  .log-item .log-qty { font-weight: 700; width: 40px; text-align: right; }
+  .log-item .log-time { color: var(--text-muted); font-size: 11px; width: 60px; text-align: right; flex-shrink: 0; }
+
+  .pill {
+    display: inline-block;
+    background: rgba(245,166,35,0.1);
+    border: 1px solid rgba(245,166,35,0.2);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 11px;
+    color: var(--accent);
+  }
+
+  /* SPINNER */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Rentastic<span> Stock</span></div>
+  <div class="tagline">Warehouse In / Out Manager</div>
+  <div class="date-badge" id="header-date">—</div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('entry')">📦 Stock Entry</button>
+  <button class="tab-btn" onclick="switchTab('closing')">📊 Closing Stock</button>
+  <button class="tab-btn" onclick="switchTab('log')">📋 Today's Log</button>
+  <button class="tab-btn" onclick="switchTab('setup')">⚙️ Setup Guide</button>
+</div>
+
+<div class="main">
+
+  <!-- ===== STOCK ENTRY TAB ===== -->
+  <div class="tab-content active" id="tab-entry">
+    <div class="section-title">Record Stock Movement</div>
+    <div class="card">
+      <div class="form-grid">
+
+        <!-- SKU PICKER -->
+        <div class="form-group full">
+          <label>Search Item / SKU</label>
+          <div class="sku-wrapper">
+            <input type="text" id="sku-search" placeholder="Type SKU code or item name…" autocomplete="off" oninput="filterSKU()" onfocus="openDropdown()" />
+            <div class="sku-dropdown" id="sku-dropdown"></div>
+          </div>
+          <div class="sku-selected" id="sku-selected">
+            <span id="sku-selected-text">—</span>
+            <button class="clear-sku" onclick="clearSKU()" title="Clear">✕</button>
+          </div>
+        </div>
+
+        <!-- IN / OUT TOGGLE -->
+        <div class="form-group">
+          <label>Movement Type</label>
+          <div class="toggle-group">
+            <button class="toggle-btn active-in" id="btn-in" onclick="setType('In')">▲ Stock IN</button>
+            <button class="toggle-btn" id="btn-out" onclick="setType('Out')">▼ Stock OUT</button>
+          </div>
+        </div>
+
+        <!-- QUANTITY -->
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="qty" min="1" value="1" placeholder="Enter quantity" />
+        </div>
+
+        <!-- DATE -->
+        <div class="form-group">
+          <label>Date</label>
+          <input type="date" id="entry-date" />
+        </div>
+
+        <!-- REMARKS -->
+        <div class="form-group">
+          <label>Remarks (optional)</label>
+          <input type="text" id="remarks" placeholder="e.g. Returned from event, Damaged…" />
+        </div>
+
+        <!-- SUBMIT -->
+        <div class="form-group full">
+          <button class="btn-submit" id="submit-btn" onclick="submitEntry()">Save to Google Sheet</button>
+          <div class="status-bar" id="status-bar"></div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- QUICK STATS -->
+    <div class="section-title">Quick Overview</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;" id="quick-stats">
+      <div class="card" style="padding:18px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;color:var(--green);" id="stat-in">—</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">IN Today</div>
+      </div>
+      <div class="card" style="padding:18px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;color:var(--red);" id="stat-out">—</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">OUT Today</div>
+      </div>
+      <div class="card" style="padding:18px;text-align:center;">
+        <div style="font-size:26px;font-weight:800;color:var(--accent);" id="stat-entries">—</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Entries Today</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== CLOSING STOCK TAB ===== -->
+  <div class="tab-content" id="tab-closing">
+    <div class="table-controls">
+      <div class="section-title" style="margin-bottom:0">Daily Closing Stock</div>
+      <input class="search-input" type="text" placeholder="Filter by SKU or name…" oninput="filterTable(this.value)" />
+      <button class="btn-refresh" onclick="loadClosingStock()">↻ Refresh</button>
+    </div>
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div id="closing-table-wrap">
+        <div class="empty-state"><div class="empty-icon">📦</div>Click Refresh to load closing stock from Google Sheet.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TODAY'S LOG TAB ===== -->
+  <div class="tab-content" id="tab-log">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
+      <div class="section-title" style="margin-bottom:0">Today's Entries</div>
+      <span class="pill" id="log-count-pill">0 entries</span>
+      <button class="btn-refresh" style="margin-left:auto" onclick="loadTodayLog()">↻ Refresh</button>
+    </div>
+    <div class="card" id="log-container">
+      <div class="empty-state"><div class="empty-icon">📋</div>Click Refresh to load today's entries.</div>
+    </div>
+  </div>
+
+  <!-- ===== SETUP GUIDE TAB ===== -->
+  <div class="tab-content" id="tab-setup">
+    <div class="section-title">One-time Setup (5 minutes)</div>
+    <div class="card">
+      <ol class="guide-steps">
+        <li>
+          <div class="step-body">
+            <strong>Open your Google Sheet</strong> → go to <strong>Extensions → Apps Script</strong>. Delete any existing code in <code>Code.gs</code>.
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Paste the Apps Script below</strong> into <code>Code.gs</code> and click Save (💾).
+            <button class="copy-btn" onclick="copyScript()">Copy Script</button>
+            <div class="code-block" id="apps-script-code">// ======================================================
 // Rentastic Stock Manager — Apps Script (Code.gs)
 // IMPORTANT: Deploy as Web App
 //   Execute as: Me
@@ -87,4 +657,446 @@ function updateClosingStock(sheet, sku, type, qty, date) {
   }
   // Not found — insert new row
   ws.appendRow([new Date(dateStr + "T00:00:00"), sku, type === "In" ? qty : -qty]);
+}</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Deploy as Web App:</strong> Click <strong>Deploy → New Deployment</strong>. Set type to <strong>Web App</strong>. Set "Execute as" = <strong>Me</strong>, "Who has access" = <strong>Anyone</strong>. Click Deploy and <strong>Authorise</strong> when prompted. Copy the Web App URL (ends in <code>/exec</code>).
+            <br><br>⚠ <strong>If you already deployed before</strong> — you must do <strong>Deploy → Manage Deployments → Edit (pencil) → New version → Deploy</strong> to apply the new script.
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Test the URL in your browser first.</strong> Paste your URL into Chrome and add <code>?action=addEntry&sku=TEST&type=In&qty=1&date=2026-01-01&remarks=test</code> at the end, then press Enter. You should see <code>{"ok":true,"message":"Entry saved."}</code>. If you see that, the script is working. Then check your sheet — a TEST row should appear in the In/Out tab.
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Paste the URL below</strong> and click Save. This connects the form to your Google Sheet.
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <input type="text" id="gsheet-url" placeholder="https://script.google.com/macros/s/…/exec" style="flex:1;" />
+              <button class="btn-submit" style="width:auto;padding:10px 18px;margin-top:0;" onclick="saveConfig()">Save URL</button>
+            </div>
+            <div id="config-status" style="margin-top:8px;font-size:12px;color:var(--green);display:none;">✓ URL saved. The form is now connected.</div>
+          </div>
+        </li>
+        <li>
+          <div class="step-body">
+            <strong>Make sure your Google Sheet has these two tabs:</strong>
+            <br>• <code>In/Out</code> — headers: <code>Timestamp | SKU | In/Out | Date | Quantity | Remarks</code>
+            <br>• <code>Daily Closing</code> — headers: <code>Timestamp | SKU | Qty</code>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// SKU DATA
+// ============================================================
+const SKU_DATA = [
+  ["RT 2010","MIRROR ROUND TABLE ( BOX)"],["RC1028","ARROW DINING CHAIR"],["RC1029","ARROW BAR CHAIR"],
+  ["RC1041","NEW YORK BAR CHAIR ( ROSE GOLD)"],["RC1012B","GOLD OVAL BACK CHAIR"],["RC1008B","BELLE GHOST CHAIR"],
+  ["RC1001","GOLD CHIVARI CHAIR"],["RC 1005","WHITE CHIVARI CHAIR"],["RC 1008","GHOST CHAIR"],
+  ["RC 1012","PRINCESS CHAIR"],["RC 1007B","WHITE X BACK CHAIR"],["RC 1004","WHITE FOLDING CHAIR"],
+  ["RC015","BLACK POOF"],["RC016","BOX SOFA WHITE 1 SEATER"],["RC 1016","S SOFA BLACK"],
+  ["RC 1017","CURVED BACK"],["RC 1007","BROWN X BACK CHAIR"],["RC 1032","IMPERIAL CHAIR"],
+  ["RC 1030","VINTAGE CHAIR"],["RC 1031","SOFIA CHAIR"],["RC 2027","GOLD LOUIS CHAIR"],
+  ["RC 1040A","GARDEN BAR STOOL 1"],["RC 1040B","GARDEN BAR STOOL 2"],["RC 1022","ROYAL COUCH SILVER"],
+  ["RC 1023","ROYAL COUCH GREY"],["RC 1024","ROYAL COUCH MAGENTA"],["RC 1055","MANGO BOX POOF"],
+  ["RC 1034","ROYAL POOF MUSHROOM"],["RC 1035","ROYAL POOF"],["RC 1036","ROYAL POOF COFFEE TABLE"],
+  ["RC 1037","ROYAL OTTOMAN"],["RS3016","GREEN SOFA 3 SEATER"],["RS3016A","GREEN SOFA 1 SEATER"],
+  ["RS 3015","BLUE SOFA 3 SEATER"],["RS 3015A","BLUE SOFA 1 SEATER"],["RS 3006","BLACK VELVET SOFA"],
+  ["RS 3013","PINK SOFA 1 SEATER"],["RS 3010","BOLSTER SOFA 1 SEATER"],["RS 3011","SHELLY SOFA 1 SEATER"],
+  ["RS 3012","GARDEN SOFA 1 SEATER"],["RS 3008","VINTAGE SOFA 1 SEATER"],["RS3013","PINK LOVE SOFA 2 SEATER"],
+  ["RS 3013 B","BEIGE LOVE SOFA 1 SEATER"],["RS 3009","PINK SOFA 2 SEATER"],["RS 3010","BOLSTER SOFA 2 SEATER"],
+  ["RS 3011","SHELLY SOFA 3 SEATER MAROON"],["RS 3012","GARDEN SOFA 2 SEATER"],["RS 3014","VINTAGE SOFA 2 SEATER GREY"],
+  ["RS 4057A","VINTAGE SOFA 2 SEATER"],["RS 3001","GOLDEN VELVET 3 SEATER SOFA"],["RS 3007","DONUT SEATING 18 SEATER"],
+  ["RS 3005","DEEWAN (STRUCTURE)"],["RS 3011B","SHELLY BENCH BEIGE"],["RT 2003A","GARDEN DINING TABLE"],
+  ["RT 2016","MIRROR SIDE TABLE 1"],["RT 2015","MIRROR SIDE TABLE 2"],["RT 2014","MIRROR SIDE TABLE 3"],
+  ["RT 2007","ROYAL DINING TABLE (Black)"],["RT 2017","IMPERIAL DINING TABLE"],["RT 2004","MOON DINING TABLE"],
+  ["RT 2009","MIRROR RECTANGLE DINING TABLE (8X4)"],["RT 2008","ROUND MIRROR TABLE"],["RT 4029","WOODEN CREDENZA TABLE 6ft"],
+  ["RT 2041","FOUNTAIN BISTRO TABLE"],["RT 2018","ARROW COCKTAIL TABLE"],["RT 2018A","ARROW DINING TABLE"],
+  ["RT 2040","NEW YORK CONSOLE GOLD"],["RT 2020","ARROW MIRROR CONSOLE ROSE GOLD"],["RT 2022","SILVER MIRROR CONSOLE"],
+  ["RT 2019","SWASTIK MIRROR CONSOLE"],["RT 2024","IMPERIAL CONSOLE ROSE GOLD"],["RT 2021","ABSTRACT MIRROR CONSOLE ROSE GOLD"],
+  ["RT 2023","VINTAGE MIRROR CONSOLE"],["RT 2025","ARROW CONSOLE TABLE ROSE GOLD"],["RT 2005","OVAL COFFEE TABLE"],
+  ["RT 2006","BOX MIRROR COFFEE TABLE"],["RT 2044","ZEN COFFEE TABLE"],["RT 2029","VINTAGE COFFEE TABLE"],
+  ["RT 2028","ARROW SIDE TABLE"],["RT 2002","COFFEE TABLE ROSE GOLD"],["RC 4045","GOLD STAND 1FT"],
+  ["RT 2041B","WOODEN BARREL 2FT"],["RL 4001","LED ROCK"],["RL 4002","ROUND LED POOF"],
+  ["RL 4005","LED COFFEE TABLE"],["RL 4006","LED EGG PROP"],["RL 4008","LED BALL"],
+  ["RL 4007","LED LANTERN"],["RL 4009","LED CUBE POOF"],["RP 5004","WOODEN BRASS CHOWRI SET"],
+  ["RP 5005","WOODEN CARVING CHOWRI SET"],["RS 6001","WOODEN CARVING CHAIR"],["RS6001","WOODEN CARVING 2 SEATER"],
+  ["RT 2071","WOODEN ASSORTED STOOL SMALL"],["RC 2051","PEACOCK CHAIR"],["RS 4056","WHITE DEEWAN"],
+  ["RT 2052","VICTORIAN SIDE TABLE"],["RP 5001","ELEPHANT - 4FT"],["RP 5002","SILVER DEER"],
+  ["RP 5008","MIRROR BOTTLE"],["RP 5007","MIRROR CHOWRI SET"],["RT 2009CT","MIRROR COFFEE TABLE"],
+  ["RC1106","BOHO ARM CHAIR"],["RS3030","BOHO SOFA"],["RC4045","BOHO COFFEE TABLE"],
+  ["RC1105","BOHO BUCKET CHAIR"],["RC1027W","LOUIS CHAIR WHITE"],["RC1027B","LOUIS CHAIR BLACK"],
+  ["RC 4052","VICTORIAN CHAIR"],["RC 1046","RATTAN BACK WOODEN CHAIR"],["RC 1047","SQUARE RATTAN BACK WOODEN CHAIR"],
+  ["RT 2032","ROUND WOODEN COFFEE TABLE"],["RS 4049","BLOOM LOUNGER BEIGE"],["RS 4049","BLOOM LOUNGER PINK"],
+  ["RC1048A","SUEDE CHAIR PINK"],["RC1048B","SUEDE CHAIR LIGHT GREY"],["RC 1045G","SUEDE BAR CHAIR GREY"],
+  ["RS4055","PLUM SINGLE SEATER"],["RS 4055A","PLUM SOFA 3 SEATER"],["RC4051","PLUM ARROW CHAIR"],
+  ["RS4045","RATTAN BACK CROWN SOFA"],["RS4046A","ELLE SOFA 1 SEATER"],["RS 4046B","ELLE SOFA 2 SEATER"],
+  ["RS 4046","ELLE SOFA 3 SEATER"],["RS 4048A","RATTAN ARM SOFA 2 SEATER"],["RS 4049","ELEGANCE SOFA MAROON"],
+  ["RS 4050","CURVE LOUNGER"],["RP 5010","MACRAME UMBRELLA"],["RP 5003","UMBRELLA"],
+  ["RT2010","VICTORIAN GOLD DINING TABLE"],["RS4048","RATTAN ARM CHAIRS"],["RE5002","TRIPOD COCKTAIL TABLE NEW"],
+  ["RE 5003","CAFE BAR CHAIR"],["RE 5004","CIGAR COCKTAIL TABLE"],["RE 5005","CIGAR BAR CHAIR"],
+  ["RE 5006","STANDING DESK"],["RE 5007","EXHIBIT BAR CHAIR"],["559","TRIPOD COFFEE TABLE"],
+  ["560","BASIC COCKTAIL TABLE"],["561","LAMP SMALL"],["562","LAMP FLOOR"],
+  ["563","WOODEN SIDE TABLE"],["565","ROUND BASIC DINING TABLE 5FT"],["566","CATERING TABLE 4*2"],
+  ["569","BANQUET CHAIRS"],["570","CANDLE STANDS"],["571","SILVER MIRROR COFFEE TABLE"],
+  ["RC 4045 4ft","GOLD STAND 4FT"],["RC 4045 3FT","GOLD STAND 3FT"],["RC 4045 2ft","GOLD STAND 2FT"],
+  ["579","WING CHAIR"],["580","SCARLETT CHAIR"],["581","SWAN CHAIRS"],["583","BOOTH BAR CHAIR"],
+  ["584","BOHO POOF"],["585","RATTAN SOFA 3 SEATER"],["589","SHELLY BENCH BLUE"],
+  ["590","QUEUE MANGER GOLD POLES"],["592","SHELLY BENCH BEIGE"],["593","SHELLY BENCH GREEN"],
+  ["597","RUSTIC BAR 8FT"],["598","BARREL BAR"],["601","VINTAGE VIDHI CHAIR"],
+  ["602","PINK VIDHI CHAIR"],["603","PD VIDHI CHAIRS"],["604","SILVER VIDHI CHAIR"],
+  ["605","ROUND DINING TABLE 6FT"],["607","WHITE VIDHI CHAIR"],["608","VICTORIAN SOFA 1 SEATER"],
+  ["RS02A","GARDEN SOFA 3 SEATER"],["RS06A","HENRY SOFA THREE SEATER"],["RS06B","HENRY SOFA ONE SEATER"],
+  ["RS14","WOODEN DEEWAN"],["RT01","GARDEN BENCH TABLE (G)"],["GRT01B","GARDEN BENCH (G)"],
+  ["RC08","TIFFANY CHAIRS"],["RB07","GOLD STRIP BAR 8FT"],["GRP02","WHITE ICE CREAM CART"],
+  ["613","RIM COFFEE TABLE"],["614","MIRROR PEDESTAL 1ft"],["615","MIRROR PEDESTAL 2ft"],
+  ["616","MIRROR PEDESTAL 3ft"],["617","MIRROR PEDESTAL 4ft"],["619","VICTORIAN SOFA 2 SEATER"],
+  ["620","VICTORIAN COFFEE TABLE"],["629","CAFE BISTRO TABLE"]
+];
+
+// ============================================================
+// STATE
+// ============================================================
+let selectedSKU = null;
+let selectedSKUName = null;
+let movementType = "In";
+let configURL = localStorage.getItem("rentastic_gsheet_url") || "";
+let closingData = [];
+let closingDataRaw = [];
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener("DOMContentLoaded", () => {
+  const today = new Date();
+  document.getElementById("header-date").textContent =
+    today.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" });
+  document.getElementById("entry-date").value = today.toISOString().slice(0, 10);
+  if (configURL) document.getElementById("gsheet-url").value = configURL;
+  renderDropdown("");
+});
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(name) {
+  document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+  document.querySelectorAll(".tab-btn").forEach(el => el.classList.remove("active"));
+  document.getElementById("tab-" + name).classList.add("active");
+  event.target.classList.add("active");
 }
+
+// ============================================================
+// SKU SEARCH
+// ============================================================
+function renderDropdown(query) {
+  const dd = document.getElementById("sku-dropdown");
+  const q = query.trim().toLowerCase();
+  const matches = q.length === 0
+    ? SKU_DATA.slice(0, 50)
+    : SKU_DATA.filter(([code, name]) =>
+        code.toLowerCase().includes(q) || name.toLowerCase().includes(q)
+      ).slice(0, 40);
+
+  dd.innerHTML = matches.map(([code, name]) =>
+    `<div class="sku-option" onclick="selectSKU('${code.replace(/'/g,"\\'")}','${name.replace(/'/g,"\\'")}')">
+      <span class="sku-code">${code}</span>
+      <span class="sku-name">${name}</span>
+    </div>`
+  ).join("") || `<div class="sku-option" style="color:var(--text-muted)">No matches found</div>`;
+}
+
+function filterSKU() {
+  const q = document.getElementById("sku-search").value;
+  renderDropdown(q);
+  openDropdown();
+}
+
+function openDropdown() {
+  document.getElementById("sku-dropdown").classList.add("open");
+}
+
+function selectSKU(code, name) {
+  selectedSKU = code;
+  selectedSKUName = name;
+  document.getElementById("sku-search").value = "";
+  document.getElementById("sku-dropdown").classList.remove("open");
+  const sel = document.getElementById("sku-selected");
+  sel.classList.add("visible");
+  document.getElementById("sku-selected-text").textContent = `${code}  —  ${name}`;
+}
+
+function clearSKU() {
+  selectedSKU = null;
+  selectedSKUName = null;
+  document.getElementById("sku-selected").classList.remove("visible");
+  document.getElementById("sku-search").value = "";
+}
+
+document.addEventListener("click", e => {
+  if (!e.target.closest(".sku-wrapper")) {
+    document.getElementById("sku-dropdown").classList.remove("open");
+  }
+});
+
+// ============================================================
+// IN / OUT TOGGLE
+// ============================================================
+function setType(type) {
+  movementType = type;
+  const btnIn = document.getElementById("btn-in");
+  const btnOut = document.getElementById("btn-out");
+  btnIn.className = "toggle-btn" + (type === "In" ? " active-in" : "");
+  btnOut.className = "toggle-btn" + (type === "Out" ? " active-out" : "");
+}
+
+// ============================================================
+// SUBMIT ENTRY  —  uses GET params (bypasses CORS preflight)
+// ============================================================
+async function submitEntry() {
+  if (!selectedSKU) return showStatus("Please select an item / SKU.", "error");
+  const qty = parseInt(document.getElementById("qty").value);
+  if (!qty || qty < 1) return showStatus("Enter a valid quantity (min 1).", "error");
+  const date = document.getElementById("entry-date").value;
+  const remarks = document.getElementById("remarks").value.trim();
+
+  const baseURL = localStorage.getItem("rentastic_gsheet_url");
+  if (!baseURL) return showStatus("⚠ Web App URL not set. Go to Setup Guide tab first.", "error");
+
+  const btn = document.getElementById("submit-btn");
+  btn.disabled = true;
+  showStatus('<span class="spinner"></span>  Saving to Google Sheet…', "loading");
+
+  // Build URL with query params — GET is a simple request, no preflight, works from any file://
+  const params = new URLSearchParams({
+    action: "addEntry",
+    sku: selectedSKU,
+    type: movementType,
+    qty: qty,
+    date: date,
+    remarks: remarks
+  });
+  const fullURL = baseURL + "?" + params.toString();
+
+  try {
+    const res = await fetch(fullURL, { method: "GET", mode: "no-cors" });
+    // no-cors opaque response — if no network error thrown, request reached Google
+    showStatus(`✓  ${movementType === "In" ? "Stock IN" : "Stock OUT"} saved — ${selectedSKU} × ${qty}`, "success");
+    addToLocalLog({ sku: selectedSKU, name: selectedSKUName, type: movementType, qty, date, time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) });
+    updateQuickStats(movementType, qty);
+    document.getElementById("qty").value = 1;
+    document.getElementById("remarks").value = "";
+    clearSKU();
+  } catch (err) {
+    showStatus("✗ Network error. Check your Web App URL and internet connection.", "error");
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ============================================================
+// STATUS BAR
+// ============================================================
+function showStatus(msg, type) {
+  const bar = document.getElementById("status-bar");
+  bar.className = "status-bar " + type;
+  bar.innerHTML = msg;
+  if (type === "success") setTimeout(() => { bar.className = "status-bar"; }, 5000);
+}
+
+// ============================================================
+// LOCAL LOG (session memory)
+// ============================================================
+let localLog = [];
+function addToLocalLog(entry) {
+  localLog.unshift(entry);
+  renderLocalLog();
+}
+
+function renderLocalLog() {
+  const container = document.getElementById("log-container");
+  document.getElementById("log-count-pill").textContent = localLog.length + " entries";
+  if (localLog.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">📋</div>No entries yet in this session.</div>';
+    return;
+  }
+  container.innerHTML = localLog.map(e =>
+    `<div class="log-item">
+      <div class="log-sku">${e.sku}</div>
+      <div class="log-name">${e.name}</div>
+      <span class="badge badge-${e.type === 'In' ? 'in' : 'out'}">${e.type}</span>
+      <div class="log-qty" style="color:${e.type === 'In' ? 'var(--green)' : 'var(--red)'}">
+        ${e.type === 'In' ? '+' : '-'}${e.qty}
+      </div>
+      <div class="log-time">${e.time}</div>
+    </div>`
+  ).join("");
+}
+
+// ============================================================
+// QUICK STATS
+// ============================================================
+let statsIn = 0, statsOut = 0, statsEntries = 0;
+function updateQuickStats(type, qty) {
+  statsEntries++;
+  if (type === "In") statsIn += qty;
+  else statsOut += qty;
+  document.getElementById("stat-in").textContent = statsIn;
+  document.getElementById("stat-out").textContent = statsOut;
+  document.getElementById("stat-entries").textContent = statsEntries;
+}
+
+// ============================================================
+// CLOSING STOCK (from GSheet)
+// ============================================================
+async function loadClosingStock() {
+  const url = localStorage.getItem("rentastic_gsheet_url");
+  if (!url) {
+    document.getElementById("closing-table-wrap").innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚙️</div>Set your Web App URL in the Setup Guide tab first.</div>';
+    return;
+  }
+  document.getElementById("closing-table-wrap").innerHTML =
+    '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
+  try {
+    const res = await fetch(url + "?action=getClosing");
+    const json = await res.json();
+    if (!json.ok || !json.data) throw new Error("Bad response");
+    closingDataRaw = json.data;
+    renderClosingTable(json.data);
+  } catch (err) {
+    document.getElementById("closing-table-wrap").innerHTML =
+      '<div class="empty-state" style="color:var(--red)">✗ Could not load. Check URL and sheet permissions.</div>';
+  }
+}
+
+function renderClosingTable(data) {
+  if (!data || data.length < 2) {
+    document.getElementById("closing-table-wrap").innerHTML =
+      '<div class="empty-state"><div class="empty-icon">📭</div>No closing stock data yet.</div>';
+    return;
+  }
+  const headers = data[0];
+  const rows = data.slice(1);
+  closingData = rows;
+  const html = `<table>
+    <thead><tr>
+      <th>Date</th>
+      <th>SKU</th>
+      <th>Item Name</th>
+      <th style="text-align:right">Qty</th>
+    </tr></thead>
+    <tbody>
+    ${rows.map(row => {
+      const dateStr = row[0] ? new Date(row[0]).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) : "—";
+      const sku = row[1] || "—";
+      const qty = parseInt(row[2]) || 0;
+      const match = SKU_DATA.find(([c]) => c === sku);
+      const name = match ? match[1] : "—";
+      const cls = qty > 0 ? "positive" : qty < 0 ? "negative" : "zero";
+      return `<tr>
+        <td style="color:var(--text-muted);font-size:12px;">${dateStr}</td>
+        <td class="td-code">${sku}</td>
+        <td class="td-name">${name}</td>
+        <td class="td-qty ${cls}">${qty}</td>
+      </tr>`;
+    }).join("")}
+    </tbody>
+  </table>`;
+  document.getElementById("closing-table-wrap").innerHTML = html;
+}
+
+function filterTable(q) {
+  if (!closingDataRaw.length) return;
+  if (!q) { renderClosingTable(closingDataRaw); return; }
+  const filtered = closingDataRaw.filter((row, i) => {
+    if (i === 0) return false;
+    const sku = (row[1] || "").toLowerCase();
+    const match = SKU_DATA.find(([c]) => c === row[1]);
+    const name = match ? match[1].toLowerCase() : "";
+    return sku.includes(q.toLowerCase()) || name.includes(q.toLowerCase());
+  });
+  renderClosingTable([closingDataRaw[0], ...filtered]);
+}
+
+// ============================================================
+// TODAY'S LOG (from GSheet)
+// ============================================================
+async function loadTodayLog() {
+  if (localLog.length > 0) { renderLocalLog(); return; }
+  const url = localStorage.getItem("rentastic_gsheet_url");
+  if (!url) {
+    document.getElementById("log-container").innerHTML =
+      '<div class="empty-state"><div class="empty-icon">⚙️</div>Set your Web App URL in Setup Guide first.</div>';
+    return;
+  }
+  document.getElementById("log-container").innerHTML =
+    '<div class="empty-state"><span class="spinner"></span> Loading…</div>';
+  try {
+    const res = await fetch(url + "?action=getToday");
+    const json = await res.json();
+    if (!json.ok) throw new Error();
+    const rows = json.data.slice(1);
+    document.getElementById("log-count-pill").textContent = rows.length + " entries";
+    if (!rows.length) {
+      document.getElementById("log-container").innerHTML =
+        '<div class="empty-state"><div class="empty-icon">📋</div>No entries recorded today.</div>';
+      return;
+    }
+    document.getElementById("log-container").innerHTML = rows.map(row => {
+      const sku = row[1] || "—";
+      const type = row[2] || "In";
+      const qty = parseInt(row[4]) || 0;
+      const match = SKU_DATA.find(([c]) => c === sku);
+      const name = match ? match[1] : "—";
+      const t = row[0] ? new Date(row[0]).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—";
+      return `<div class="log-item">
+        <div class="log-sku">${sku}</div>
+        <div class="log-name">${name}</div>
+        <span class="badge badge-${type === 'In' ? 'in' : 'out'}">${type}</span>
+        <div class="log-qty" style="color:${type === 'In' ? 'var(--green)' : 'var(--red)'}">
+          ${type === 'In' ? '+' : '-'}${qty}
+        </div>
+        <div class="log-time">${t}</div>
+      </div>`;
+    }).join("");
+  } catch {
+    document.getElementById("log-container").innerHTML =
+      '<div class="empty-state" style="color:var(--red)">✗ Could not load. Check URL and sheet permissions.</div>';
+  }
+}
+
+// ============================================================
+// SAVE CONFIG
+// ============================================================
+function saveConfig() {
+  const url = document.getElementById("gsheet-url").value.trim();
+  if (!url) return;
+  localStorage.setItem("rentastic_gsheet_url", url);
+  configURL = url;
+  document.getElementById("config-status").style.display = "block";
+}
+
+// ============================================================
+// COPY APPS SCRIPT
+// ============================================================
+function copyScript() {
+  const code = document.getElementById("apps-script-code").textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    const btn = event.target;
+    btn.textContent = "Copied!";
+    setTimeout(() => btn.textContent = "Copy Script", 2000);
+  });
+}
+</script>
+</body>
+</html>
